@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Netzwerkmonitor</title>
+    <link rel="stylesheet" href="lib/bootstrap.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4; color: #333; }
+        h1, h2 { color: #0056b3; }
+        table { background-color: #fff; width: 100%; margin-bottom: 20px; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+        .table-section { margin-bottom: 40px; }
+        .export-btn { margin-bottom: 10px; }
+        .collapsible-table tbody { display: none; }
+        .collapsible-table.expanded tbody { display: table-row-group; }
+        .collapsible-table .expand-collapse-btn {
+            cursor: pointer;
+            color: #0056b3;
+            text-decoration: underline;
+            padding: 2px 5px;
+            border-radius: 3px;
+            float: right;
+            margin-right: 10px;
+        }
+        .collapsible-table .expand-collapse-btn:hover { background-color: #e9ecef; }
+    </style>
+</head>
+<body>
+    <h1>Netzwerkmonitor</h1>
+    <div class="container mt-4">
+        <div class="table-section">
+            <h2>Registrierte IP-Adressen</h2>
+            <button class="export-btn btn btn-primary" onclick="exportTableToExcel('safeIpTable', 'registered-ip-addresses')">Exportieren nach Excel</button>
+            <table id="safeIpTable" class="table collapsible-table">
+                <thead>
+                    <tr>
+                        <th>IP-Adresse</th>
+                        <th>Name</th>
+                        <th class="expand-collapse-btn" onclick="toggleTable('safeIpTable')">+</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="table-section">
+            <h2>Unregistrierte IP-Adressen</h2>
+            <button class="export-btn btn btn-primary" onclick="exportTableToExcel('ipTable', 'unregistered-ip-addresses')">Exportieren nach Excel</button>
+            <table id="ipTable" class="table collapsible-table">
+                <thead>
+                    <tr>
+                        <th>IP-Adresse</th>
+                        <th class="expand-collapse-btn" onclick="toggleTable('ipTable')">+</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="table-section">
+            <h2>MAC-Adressen</h2>
+            <button class="export-btn btn btn-primary" onclick="exportTableToExcel('macTable', 'mac-addresses')">Exportieren nach Excel</button>
+            <table id="macTable" class="table collapsible-table">
+                <thead>
+                    <tr>
+                        <th>MAC-Adresse</th>
+                        <th class="expand-collapse-btn" onclick="toggleTable('macTable')">+</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="table-section">
+            <h2>MAC-zu-IP-Zuordnungen</h2>
+            <button class="export-btn btn btn-primary" onclick="exportTableToExcel('macIpMap', 'mac-ip-mappings')">Exportieren nach Excel</button>
+            <table id="macIpMap" class="table collapsible-table">
+                <thead>
+                    <tr>
+                        <th>MAC-Adresse</th>
+                        <th>IP-Adressen</th>
+                        <th class="expand-collapse-btn" onclick="toggleTable('macIpMap')">+</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="table-section">
+            <h2>Kommunikationsdetails</h2>
+            <button class="export-btn btn btn-primary" onclick="exportTableToExcel('commTable', 'communication-details')">Exportieren nach Excel</button>
+            <table id="commTable" class="table collapsible-table">
+                <thead>
+                    <tr>
+                        <th>Quell-MAC</th>
+                        <th>Ziel-MAC</th>
+                        <th>Quell-IP</th>
+                        <th>Ziel-IP</th>
+                        <th>Quell-Port</th>
+                        <th>Ziel-Port</th>
+                        <th class="expand-collapse-btn" onclick="toggleTable('commTable')">+</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        
+        <div class="mt-4">
+            <a href="iec104.html" class="btn btn-primary">IEC104-Daten anzeigen</a>
+        </div>
+    </div>
+
+    <script src="lib/xlsx.full.min.js"></script>
+    <script>
+    function toggleTable(tableId) {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+        const button = table.querySelector('.expand-collapse-btn');
+        if (!button) return;
+        if (table.classList.contains('expanded')) {
+            table.classList.remove('expanded');
+            button.textContent = '+';
+        } else {
+            table.classList.add('expanded');
+            button.textContent = '-';
+        }
+    }
+
+    async function fetchData(url) {
+        try {
+            console.log(`Fetching data from ${url}`);
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error('Network response was not ok.');
+            }
+            const data = await response.json();
+            console.log(`Data received from ${url}:`, data);
+            return data;
+        } catch (error) {
+            console.error('Fetch error:', error.message);
+            return [];
+        }
+    }
+
+    function displayTable(data, elementId, includeName = false) {
+        console.log(`Displaying table for ${elementId}`, data);
+        const table = document.getElementById(elementId);
+        if (!table) {
+            console.error(`Table with id ${elementId} not found`);
+            return;
+        }
+        const tbody = table.getElementsByTagName('tbody')[0];
+        if (!tbody) {
+            console.error(`Tbody not found in table ${elementId}`);
+            return;
+        }
+        tbody.innerHTML = '';
+        data.forEach(item => {
+            const row = tbody.insertRow();
+            if (includeName && item.ip && item.name) {
+                row.insertCell(0).textContent = item.ip;
+                row.insertCell(1).textContent = item.name;
+            } else {
+                row.insertCell(0).textContent = item;
+            }
+        });
+        console.log(`Table ${elementId} displayed successfully`);
+    }
+
+    function displayMappings(data, elementId) {
+        console.log(`Displaying mappings for ${elementId}`, data);
+        const table = document.getElementById(elementId);
+        if (!table) {
+            console.error(`Table with id ${elementId} not found`);
+            return;
+        }
+        const tbody = table.getElementsByTagName('tbody')[0];
+        if (!tbody) {
+            console.error(`Tbody not found in table ${elementId}`);
+            return;
+        }
+        tbody.innerHTML = '';
+        for (const [mac, ips] of Object.entries(data)) {
+            const row = tbody.insertRow();
+            row.insertCell(0).textContent = mac;
+            row.insertCell(1).textContent = ips.join(', ');
+        }
+        console.log(`Mappings for ${elementId} displayed successfully`);
+    }
+
+    function displayCommunicationDetails(communicationsData) {
+        console.log('Displaying communication details', communicationsData);
+        const table = document.getElementById('commTable');
+        if (!table) {
+            console.error('Table with id commTable not found');
+            return;
+        }
+        const tbody = table.getElementsByTagName('tbody')[0];
+        if (!tbody) {
+            console.error('Tbody not found in table commTable');
+            return;
+        }
+        tbody.innerHTML = '';
+        communicationsData.forEach(item => {
+            item.communications.forEach(comm => {
+                const row = tbody.insertRow();
+                row.insertCell(0).textContent = comm.macSrc;
+                row.insertCell(1).textContent = comm.macDst;
+                row.insertCell(2).textContent = comm.ipSrc;
+                row.insertCell(3).textContent = comm.ipDst;
+                row.insertCell(4).textContent = comm.srcPort;
+                row.insertCell(5).textContent = comm.dstPort;
+            });
+        });
+        console.log('Communication details displayed successfully');
+    }
+
+    async function loadAllData() {
+        console.log('Loading all data');
+        const safeIpData = await fetchData('/get-safe-ip-addresses');
+        const ipData = await fetchData('/get-ip-addresses');
+        const macData = await fetchData('/get-mac-addresses');
+        const macIpData = await fetchData('/get-mac-ip-mappings');
+        const communicationsData = await fetchData('/get-communications');
+
+        displayTable(safeIpData, 'safeIpTable', true);
+        displayTable(ipData, 'ipTable');
+        displayTable(macData, 'macTable');
+        displayMappings(macIpData, 'macIpMap');
+        displayCommunicationDetails(communicationsData);
+        console.log('All data loaded and displayed');
+    }
+
+    function exportTableToExcel(tableId, filename = '') {
+        console.log(`Exporting table ${tableId} to Excel`);
+        let dataType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
+        let tableSelect = document.getElementById(tableId);
+        let excelData = XLSX.utils.table_to_book(tableSelect, {sheet: "Sheet1"});
+        XLSX.write(excelData, {bookType: 'xlsx', type: 'array'});
+        XLSX.writeFile(excelData, filename + '.xlsx');
+        console.log(`Table ${tableId} exported to Excel successfully`);
+    }
+
+    document.addEventListener('DOMContentLoaded', loadAllData);
+    </script>
+</body>
+</html>

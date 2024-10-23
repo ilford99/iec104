@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>IEC104-Daten</title>
+    <link rel="stylesheet" href="lib/bootstrap.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4; color: #333; }
+        h1, h2 { color: #0056b3; }
+        table { background-color: #fff; width: 100%; margin-bottom: 20px; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+        .table-section { margin-bottom: 40px; }
+        .export-btn, .view-toggle-btn { margin-bottom: 10px; margin-right: 10px; }
+        #asduAddressTable { display: table; }
+        .no-data { color: #721c24; background-color: #f8d7da; padding: 10px; border-radius: 5px; }
+        #notImplementedAsduTypes { margin-top: 20px; }
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+        .tooltip-container .tooltiptext {
+            visibility: hidden;
+            width: 300px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -150px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip-container:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        .tooltip-container:hover {
+            background-color: #f0f0f0;
+        }
+        .asdu-type {
+            color: #333;
+            text-decoration: underline dotted;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>IEC104-Daten</h1>
+        <a href="index.html" class="btn btn-secondary mb-3">Zurück zur Hauptseite</a>
+        
+        <div class="mb-3">
+            <button class="view-toggle-btn btn btn-info" onclick="toggleView()">Ansicht wechseln</button>
+            <button class="export-btn btn btn-primary" onclick="exportTableToExcel('visibleTable', 'iec104-data')">Exportieren nach Excel</button>
+        </div>
+
+        <div id="uniqueCombinationsView" class="table-section">
+            <h2>Eindeutige Kombinationen</h2>
+            <table id="iec104Table" class="table">
+                <thead>
+                    <tr>
+                        <th>Quell-IP</th>
+                        <th>Ziel-IP</th>
+                        <th>APDU-Typ</th>
+                        <th>ASDU-Typ</th>
+                        <th>Übertragungsursache</th>
+                        <th>ASDU-Adresse</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>192.168.1.1</td>
+                        <td>192.168.1.2</td>
+                        <td>I-Format</td>
+                        <td id="testTooltip"></td>
+                        <td id="testCotTooltip"></td>
+                        <td>1</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="asduAddressView" class="table-section" style="display: none;">
+            <h2>ASDU-Adress Fokus</h2>
+            <table id="asduAddressTable" class="table">
+                <thead>
+                    <tr>
+                        <th>ASDU-Adresse</th>
+                        <th>Eigenschaften</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div id="notImplementedAsduTypes" class="table-section">
+            <h2>Nicht implementierte ASDU-Typen</h2>
+            <ul id="notImplementedList"></ul>
+        </div>
+    </div>
+
+    <script src="lib/xlsx.full.min.js"></script>
+    <script>
+    const asduTypes = {
+        1: 'M_SP_NA_1', 3: 'M_DP_NA_1', 5: 'M_ST_NA_1', 7: 'M_BO_NA_1',
+        9: 'M_ME_NA_1', 11: 'M_ME_NB_1', 13: 'M_ME_NC_1', 15: 'M_IT_NA_1',
+        20: 'M_PS_NA_1', 21: 'M_ME_ND_1', 30: 'M_SP_TB_1', 31: 'M_DP_TB_1',
+        32: 'M_ST_TB_1', 33: 'M_BO_TB_1', 34: 'M_ME_TD_1', 35: 'M_ME_TE_1',
+        36: 'M_ME_TF_1', 37: 'M_IT_TB_1', 38: 'M_EP_TD_1', 39: 'M_EP_TE_1',
+        40: 'M_EP_TF_1', 45: 'C_SC_NA_1', 46: 'C_DC_NA_1', 47: 'C_RC_NA_1',
+        48: 'C_SE_NA_1', 49: 'C_SE_NB_1', 50: 'C_SE_NC_1', 51: 'C_BO_NA_1',
+        58: 'C_SC_TA_1', 59: 'C_DC_TA_1', 60: 'C_RC_TA_1', 61: 'C_SE_TA_1',
+        62: 'C_SE_TB_1', 63: 'C_SE_TC_1', 64: 'C_BO_TA_1', 70: 'M_EI_NA_1',
+        100: 'C_IC_NA_1', 101: 'C_CI_NA_1', 102: 'C_RD_NA_1', 103: 'C_CS_NA_1',
+        104: 'C_TS_NA_1', 105: 'C_RP_NA_1', 106: 'C_CD_NA_1', 107: 'C_TS_TA_1',
+        110: 'P_ME_NA_1', 111: 'P_ME_NB_1', 112: 'P_ME_NC_1', 113: 'P_AC_NA_1',
+        120: 'F_FR_NA_1', 121: 'F_SR_NA_1', 122: 'F_SC_NA_1', 123: 'F_LS_NA_1',
+        124: 'F_AF_NA_1', 125: 'F_SG_NA_1', 126: 'F_DR_TA_1', 127: 'F_SC_NB_1'
+    };
+
+    const asduDescriptions = {
+        'M_SP_NA_1': 'Einzelwert, ohne Zeitmarke',
+        'M_DP_NA_1': 'Doppelwert, ohne Zeitmarke',
+        'M_ST_NA_1': 'Schrittstellung, ohne Zeitmarke',
+        'M_BO_NA_1': 'Bitstrang von 32 Bit, ohne Zeitmarke',
+        'M_ME_NA_1': 'Messwert, normalisierter Wert, ohne Zeitmarke',
+        'M_ME_NB_1': 'Messwert, skalierter Wert, ohne Zeitmarke',
+        'M_ME_NC_1': 'Messwert, Gleitkommawert, ohne Zeitmarke',
+        'M_IT_NA_1': 'Zählerstand, ohne Zeitmarke',
+        'M_PS_NA_1': 'Packetzustand, ohne Zeitmarke',
+        'M_ME_ND_1': 'Messwert, normalisierter Wert ohne Qualitätsdeskriptor',
+        'M_SP_TB_1': 'Einzelwert, mit Zeitmarke',
+        'M_DP_TB_1': 'Doppelwert, mit Zeitmarke',
+        'M_ST_TB_1': 'Schrittstellung, mit Zeitmarke',
+        'M_BO_TB_1': 'Bitstrang von 32 Bit, mit Zeitmarke',
+        'M_ME_TD_1': 'Messwert, normalisierter Wert, mit Zeitmarke',
+        'M_ME_TE_1': 'Messwert, skalierter Wert, mit Zeitmarke',
+        'M_ME_TF_1': 'Messwert, Gleitkommawert, mit Zeitmarke',
+        'M_IT_TB_1': 'Zählerstand, mit Zeitmarke',
+        'M_EP_TD_1': 'Ereignis von Schutzausrüstung, mit Zeitmarke',
+        'M_EP_TE_1': 'Gepacktes Auslöseereignis von Schutzausrüstung, mit Zeitmarke',
+        'M_EP_TF_1': 'Gepacktes Auslöseereignis von Schutzausrüstung, mit relativer Zeit',
+        'C_SC_NA_1': 'Einzelkommando',
+        'C_DC_NA_1': 'Doppelkommando',
+        'C_RC_NA_1': 'Regelungsschritt-Kommando',
+        'C_SE_NA_1': 'Sollwert-Kommando, normalisierter Wert',
+        'C_SE_NB_1': 'Sollwert-Kommando, skalierter Wert',
+        'C_SE_NC_1': 'Sollwert-Kommando, Gleitkommawert',
+        'C_BO_NA_1': 'Bitstring-32-Bit-Kommando',
+        'C_SC_TA_1': 'Einzelkommando mit Zeitmarke',
+        'C_DC_TA_1': 'Doppelkommando mit Zeitmarke',
+        'C_RC_TA_1': 'Regelungsschritt-Kommando mit Zeitmarke',
+        'C_SE_TA_1': 'Sollwert-Kommando, normalisierter Wert mit Zeitmarke',
+        'C_SE_TB_1': 'Sollwert-Kommando, skalierter Wert mit Zeitmarke',
+        'C_SE_TC_1': 'Sollwert-Kommando, Gleitkommawert mit Zeitmarke',
+        'C_BO_TA_1': 'Bitstring-32-Bit-Kommando mit Zeitmarke',
+        'M_EI_NA_1': 'Ende der Initialisierung',
+        'C_IC_NA_1': 'Abfragekommando',
+        'C_CI_NA_1': 'Zählerabfragekommando',
+        'C_RD_NA_1': 'Lesekommando',
+        'C_CS_NA_1': 'Uhrzeitsynchronisationskommando',
+        'C_TS_NA_1': 'Testkommando',
+        'C_RP_NA_1': 'Rücksetzprozess-Kommando',
+        'C_CD_NA_1': 'Verzögerungserfassungskommando',
+        'C_TS_TA_1': 'Testkommando mit Zeitmarke',
+        'P_ME_NA_1': 'Parameter von Messwert, normalisierter Wert',
+        'P_ME_NB_1': 'Parameter von Messwert, skalierter Wert',
+        'P_ME_NC_1': 'Parameter von Messwert, Gleitkommawert',
+        'P_AC_NA_1': 'Parameter zur Aktivierung',
+        'F_FR_NA_1': 'Datei bereit',
+        'F_SR_NA_1': 'Sektion bereit',
+        'F_SC_NA_1': 'Abruf der Dateidefinition',
+        'F_LS_NA_1': 'Letzte Sektion, letztes Segment',
+        'F_AF_NA_1': 'Dateiabruf bestätigen',
+        'F_SG_NA_1': 'Segment',
+        'F_DR_TA_1': 'Verzeichnis',
+        'F_SC_NB_1': 'Abruf der Dateidefinition mit Zeitmarke'
+    };
+
+    const cotTypes = {
+    1: 'Periodisch, zyklisch',
+    2: 'Hintergrund-Scan',
+    3: 'Spontan',
+    4: 'Initialisierung',
+    5: 'Abfrage oder angefordert',
+    6: 'Aktivierung',
+    7: 'Aktivierungsbestätigung',
+    8: 'Deaktivierung',
+    9: 'Deaktivierungsbestätigung',
+    10: 'Aktivierungsbeendigung',
+    11: 'Rückmeldung, verursacht durch Fernbefehl',
+    12: 'Rückmeldung, verursacht durch lokalen Befehl',
+    13: 'Datentransfer',
+    20: 'Angefordert durch Stationsabfrage',
+    21: 'Angefordert durch Abfrage der Gruppe 1',
+    22: 'Angefordert durch Abfrage der Gruppe 2',
+    23: 'Angefordert durch Abfrage der Gruppe 3',
+    24: 'Angefordert durch Abfrage der Gruppe 4',
+    25: 'Angefordert durch Abfrage der Gruppe 5',
+    26: 'Angefordert durch Abfrage der Gruppe 6',
+    27: 'Angefordert durch Abfrage der Gruppe 7',
+    28: 'Angefordert durch Abfrage der Gruppe 8',
+    29: 'Angefordert durch Abfrage der Gruppe 9',
+    30: 'Angefordert durch Abfrage der Gruppe 10',
+    31: 'Angefordert durch Abfrage der Gruppe 11',
+    32: 'Angefordert durch Abfrage der Gruppe 12',
+    33: 'Angefordert durch Abfrage der Gruppe 13',
+    34: 'Angefordert durch Abfrage der Gruppe 14',
+    35: 'Angefordert durch Abfrage der Gruppe 15',
+    36: 'Angefordert durch Abfrage der Gruppe 16',
+    37: 'Angefordert durch Zählerabfrage der Gruppe 1',
+    38: 'Angefordert durch Zählerabfrage der Gruppe 2',
+    39: 'Angefordert durch Zählerabfrage der Gruppe 3',
+    40: 'Angefordert durch Zählerabfrage der Gruppe 4',
+    44: 'Unbekannte Typkennung',
+    45: 'Unbekannte Übertragungsursache',
+    46: 'Unbekannte ASDU-Adresse',
+    47: 'Unbekannte Informationsobjektadresse',
+    70: 'Aktivierung',
+    71: 'Aktivierungsbestätigung',
+    72: 'Deaktivierung',
+    73: 'Deaktivierungsbestätigung',
+    74: 'Aktivierungsbeendigung'
+};
+
+    const cotStringToNumber = {
+        'Spontaneous': 3,
+        'Cyclic': 1,
+        'Background': 2,
+        'Initialized': 4,
+        'Request': 5,
+        'Activation': 6,
+        'ActivationConfirmation': 7,
+        'Deactivation': 8,
+        'DeactivationConfirmation': 9,
+        'ActivationTermination': 10
+    };
+
+    function getAsduTypeInfo(type) {
+        if (typeof type === 'number' || !isNaN(parseInt(type))) {
+            const numericType = parseInt(type);
+            const stringType = asduTypes[numericType];
+            const description = asduDescriptions[stringType] || 'Keine Beschreibung verfügbar';
+            return stringType ? 
+                `<span class="tooltip-container"><span class="asdu-type">${numericType} (${stringType})</span><span class="tooltiptext">${description}</span></span>` 
+                : `Unknown (${numericType})`;
+        } else if (typeof type === 'string') {
+            const entries = Object.entries(asduTypes);
+            const matchingEntry = entries.find(([_, value]) => value === type);
+            const description = asduDescriptions[type] || 'Keine Beschreibung verfügbar';
+            return matchingEntry ? 
+                `<span class="tooltip-container"><span class="asdu-type">${matchingEntry[0]} (${type})</span><span class="tooltiptext">${description}</span></span>` 
+                : `Unknown (${type})`;
+        } else {
+            return `Invalid type (${type})`;
+        }
+    }
+
+    function getCotInfo(cot) {
+        console.log('getCotInfo called with:', cot, 'Type:', typeof cot);
+        if (cot === undefined || cot === null) {
+            return 'Übertragungsursache: N/A';
+        }
+        
+        let numericCot;
+        if (typeof cot === 'string') {
+            numericCot = cotStringToNumber[cot];
+            if (numericCot === undefined) {
+                console.log('Unknown string COT:', cot);
+                return `Übertragungsursache: ${cot} (Unbekannt)`;
+            }
+        } else {
+            numericCot = parseInt(cot);
+        }
+
+        if (isNaN(numericCot)) {
+            console.log('Invalid COT value:', cot);
+            return `Übertragungsursache: ${cot} (Ungültig)`;
+        }
+
+        const description = cotTypes[numericCot];
+        if (description) {
+            return `Übertragungsursache: ${numericCot} (${description})`;
+        } else {
+            console.log('Unknown numeric COT:', numericCot);
+            return `Übertragungsursache: ${numericCot} (Unbekannt)`;
+        }
+    }
+
+    async function fetchData(url) {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error('Network response was not ok.');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Fetch error:', error.message);
+            return [];
+        }
+    }
+
+    function displayUniqueCombinations(iec104Data) {
+        console.log('Displaying unique combinations');
+        const table = document.getElementById('iec104Table');
+        const tbody = table.getElementsByTagName('tbody')[0];
+        tbody.innerHTML = '';
+
+        const uniqueCombinations = new Set();
+
+        iec104Data.forEach((item) => {
+            const combination = `${item.ipSrc}-${item.ipDst}-${item.apduType}-${item.asduType}-${item.cot}-${item.asduAddr}`;
+            
+            if (!uniqueCombinations.has(combination)) {
+                uniqueCombinations.add(combination);
+
+                const row = tbody.insertRow();
+                row.insertCell(0).textContent = item.ipSrc || 'N/A';
+                row.insertCell(1).textContent = item.ipDst || 'N/A';
+                row.insertCell(2).textContent = item.apduType || 'N/A';
+                row.insertCell(3).innerHTML = getAsduTypeInfo(item.asduType);
+                row.insertCell(4).textContent = getCotInfo(item.cot);
+                row.insertCell(5).textContent = item.asduAddr !== undefined ? item.asduAddr : 'N/A';
+            }
+        });
+
+        console.log(`Displayed ${uniqueCombinations.size} unique combinations`);
+    }
+
+    function displayAsduAddressFocus(iec104Data) {
+        console.log('Displaying ASDU address focus');
+        const table = document.getElementById('asduAddressTable');
+        const tbody = table.getElementsByTagName('tbody')[0];
+        tbody.innerHTML = '';
+
+        const asduAddressMap = new Map();
+
+        iec104Data.forEach((item) => {
+            if (item.asduAddr !== undefined) {
+                if (!asduAddressMap.has(item.asduAddr)) {
+                    asduAddressMap.set(item.asduAddr, new Set());
+                }
+                asduAddressMap.get(item.asduAddr).add(JSON.stringify({
+                    ipSrc: item.ipSrc,
+                    ipDst: item.ipDst,
+                    apduType: item.apduType,
+                    asduType: item.asduType,
+                    cot: item.cot
+                }));
+            }
+        });
+
+        if (asduAddressMap.size === 0) {
+            const row = tbody.insertRow();
+            const cell = row.insertCell(0);
+            cell.colSpan = 2;
+            cell.innerHTML = '<div class="no-data">Keine gültigen ASDU-Adressen gefunden.</div>';
+        } else {
+            // Sortiere die ASDU-Adressen aufsteigend
+            const sortedAsduAddresses = Array.from(asduAddressMap.keys()).sort((a, b) => a - b);
+
+            sortedAsduAddresses.forEach((asduAddr) => {
+                const properties = asduAddressMap.get(asduAddr);
+                const row = tbody.insertRow();
+                row.insertCell(0).textContent = asduAddr;
+                
+                const propertiesCell = row.insertCell(1);
+                properties.forEach(prop => {
+                    const propObj = JSON.parse(prop);
+                    const propDiv = document.createElement('div');
+                    propDiv.innerHTML = `
+                        <strong>Quell-IP:</strong> ${propObj.ipSrc || 'N/A'}, 
+                        <strong>Ziel-IP:</strong> ${propObj.ipDst || 'N/A'}, 
+                        <strong>APDU-Typ:</strong> ${propObj.apduType || 'N/A'}, 
+                        <strong>ASDU-Typ:</strong> ${getAsduTypeInfo(propObj.asduType)}, 
+                        <strong>${getCotInfo(propObj.cot)}</strong>
+                    `;
+                    propertiesCell.appendChild(propDiv);
+                });
+            });
+        }
+
+        console.log(`Displayed ${asduAddressMap.size} ASDU addresses`);
+    }
+
+    function findNotImplementedAsduTypes(iec104Data) {
+        const implementedTypes = new Set(iec104Data.map(item => parseInt(item.asduType)));
+        const allTypes = new Set(Object.keys(asduTypes).map(Number));
+        const notImplemented = new Set([...allTypes].filter(x => !implementedTypes.has(x)));
+
+        const notImplementedList = document.getElementById('notImplementedList');
+        notImplementedList.innerHTML = '';
+
+        if (notImplemented.size === 0) {
+            notImplementedList.innerHTML = '<li>Alle ASDU-Typen sind implementiert.</li>';
+        } else {
+            notImplemented.forEach(type => {
+                const li = document.createElement('li');
+                li.innerHTML = getAsduTypeInfo(type);
+                notImplementedList.appendChild(li);
+            });
+        }
+
+        console.log(`Found ${notImplemented.size} not implemented ASDU types`);
+    }
+
+    function toggleView() {
+        console.log('Toggling view');
+        const uniqueView = document.getElementById('uniqueCombinationsView');
+        const asduView = document.getElementById('asduAddressView');
+        if (uniqueView.style.display === 'none') {
+            uniqueView.style.display = 'block';
+            asduView.style.display = 'none';
+            console.log('Switched to unique combinations view');
+        } else {
+            uniqueView.style.display = 'none';
+            asduView.style.display = 'block';
+            console.log('Switched to ASDU address focus view');
+        }
+    }
+
+    function exportTableToExcel(tableId, filename = '') {
+        console.log('Exporting table to Excel');
+        let dataType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
+        let tableSelect = document.getElementById(tableId);
+        let excelData = XLSX.utils.table_to_book(tableSelect, {sheet: "Sheet1"});
+        XLSX.write(excelData, {bookType: 'xlsx', type: 'array'});
+        XLSX.writeFile(excelData, filename + '.xlsx');
+        console.log('Table exported to Excel');
+    }
+
+    function initializeTestTooltip() {
+        const testTooltipElement = document.getElementById('testTooltip');
+        if (testTooltipElement) {
+            testTooltipElement.innerHTML = getAsduTypeInfo(1);
+        }
+        const testCotTooltipElement = document.getElementById('testCotTooltip');
+        if (testCotTooltipElement) {
+            testCotTooltipElement.textContent = getCotInfo(3);
+        }
+    }
+
+    async function loadIEC104Data() {
+        console.log('Loading IEC104 data');
+        try {
+            const iec104Data = await fetchData('/get-iec104-data');
+            console.log(`Received ${iec104Data.length} IEC104 data items`);
+            
+            if (iec104Data.length > 0) {
+                displayUniqueCombinations(iec104Data);
+                displayAsduAddressFocus(iec104Data);
+                findNotImplementedAsduTypes(iec104Data);
+                console.log('IEC104 data loaded and displayed');
+            } else {
+                console.log('No IEC104 data received');
+                document.getElementById('iec104Table').innerHTML = '<tr><td colspan="6">Keine Daten verfügbar</td></tr>';
+            }
+        } catch (error) {
+            console.error('Error loading IEC104 data:', error);
+            document.getElementById('iec104Table').innerHTML = '<tr><td colspan="6">Fehler beim Laden der Daten</td></tr>';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeTestTooltip();
+        loadIEC104Data();
+    });
+    </script>
+</body>
+</html>
