@@ -1,18 +1,41 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Netzwerkmonitor</title>
     <link rel="stylesheet" href="lib/bootstrap.min.css">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4; color: #333; }
-        h1, h2 { color: #0056b3; }
-        table { background-color: #fff; width: 100%; margin-bottom: 20px; }
-        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
-        .table-section { margin-bottom: 40px; }
-        .export-btn { margin-bottom: 10px; }
-        .collapsible-table tbody { display: none; }
-        .collapsible-table.expanded tbody { display: table-row-group; }
+        body { 
+            font-family: Arial, Helvetica, sans-serif; 
+            background-color: #f4f4f4; 
+            color: #333; 
+        }
+        h1, h2 { 
+            color: #0056b3; 
+        }
+        table { 
+            background-color: #fff; 
+            width: 100%; 
+            margin-bottom: 20px; 
+        }
+        th, td { 
+            padding: 8px; 
+            text-align: left; 
+            border-bottom: 1px solid #ddd; 
+        }
+        .table-section { 
+            margin-bottom: 40px; 
+        }
+        .export-btn { 
+            margin-bottom: 10px; 
+        }
+        .collapsible-table tbody { 
+            display: none; 
+        }
+        .collapsible-table.expanded tbody { 
+            display: table-row-group; 
+        }
         .collapsible-table .expand-collapse-btn {
             cursor: pointer;
             color: #0056b3;
@@ -22,12 +45,27 @@
             float: right;
             margin-right: 10px;
         }
-        .collapsible-table .expand-collapse-btn:hover { background-color: #e9ecef; }
+        .collapsible-table .expand-collapse-btn:hover { 
+            background-color: #e9ecef; 
+        }
     </style>
 </head>
 <body>
     <h1>Netzwerkmonitor</h1>
     <div class="container mt-4">
+        <div class="table-section">
+            <h2>Unregistrierte IP-Adressen</h2>
+            <button class="export-btn btn btn-primary" onclick="exportTableToExcel('ipTable', 'unregistered-ip-addresses')">Exportieren nach Excel</button>
+            <table id="ipTable" class="table collapsible-table">
+                <thead>
+                    <tr>
+                        <th>IP-Adresse</th>
+                        <th class="expand-collapse-btn" onclick="toggleTable('ipTable')">+</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
         <div class="table-section">
             <h2>Registrierte IP-Adressen</h2>
             <button class="export-btn btn btn-primary" onclick="exportTableToExcel('safeIpTable', 'registered-ip-addresses')">Exportieren nach Excel</button>
@@ -37,20 +75,6 @@
                         <th>IP-Adresse</th>
                         <th>Name</th>
                         <th class="expand-collapse-btn" onclick="toggleTable('safeIpTable')">+</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-
-        <div class="table-section">
-            <h2>Unregistrierte IP-Adressen</h2>
-            <button class="export-btn btn btn-primary" onclick="exportTableToExcel('ipTable', 'unregistered-ip-addresses')">Exportieren nach Excel</button>
-            <table id="ipTable" class="table collapsible-table">
-                <thead>
-                    <tr>
-                        <th>IP-Adresse</th>
-                        <th class="expand-collapse-btn" onclick="toggleTable('ipTable')">+</th>
                     </tr>
                 </thead>
                 <tbody></tbody>

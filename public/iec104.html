@@ -10,10 +10,8 @@
         table { background-color: #fff; width: 100%; margin-bottom: 20px; }
         th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
         .table-section { margin-bottom: 40px; }
-        .export-btn, .view-toggle-btn { margin-bottom: 10px; margin-right: 10px; }
-        #asduAddressTable { display: table; }
+        .export-btn { margin-bottom: 10px; margin-right: 10px; }
         .no-data { color: #721c24; background-color: #f8d7da; padding: 10px; border-radius: 5px; }
-        #notImplementedAsduTypes { margin-top: 20px; }
         .tooltip-container {
             position: relative;
             display: inline-block;
@@ -46,46 +44,50 @@
             color: #333;
             text-decoration: underline dotted;
         }
+        .reference-section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .reference-section h3 {
+            color: #0056b3;
+            margin-bottom: 15px;
+        }
+        .reference-list {
+            columns: 2;
+            column-gap: 40px;
+        }
+        @media (max-width: 768px) {
+            .reference-list {
+                columns: 1;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container mt-4">
         <h1>IEC104-Daten</h1>
         <a href="index.html" class="btn btn-secondary mb-3">Zurück zur Hauptseite</a>
-        
-        <div class="mb-3">
-            <button class="view-toggle-btn btn btn-info" onclick="toggleView()">Ansicht wechseln</button>
-            <button class="export-btn btn btn-primary" onclick="exportTableToExcel('visibleTable', 'iec104-data')">Exportieren nach Excel</button>
-        </div>
 
-        <div id="uniqueCombinationsView" class="table-section">
-            <h2>Eindeutige Kombinationen</h2>
-            <table id="iec104Table" class="table">
+        <div class="table-section">
+            <h2>ASDU-Typen und ihre Adressen</h2>
+            <table id="asduTypeAddressTable" class="table">
                 <thead>
                     <tr>
-                        <th>Quell-IP</th>
-                        <th>Ziel-IP</th>
-                        <th>APDU-Typ</th>
                         <th>ASDU-Typ</th>
-                        <th>Übertragungsursache</th>
-                        <th>ASDU-Adresse</th>
+                        <th>Verwendete ASDU-Adressen</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>192.168.1.1</td>
-                        <td>192.168.1.2</td>
-                        <td>I-Format</td>
-                        <td id="testTooltip"></td>
-                        <td id="testCotTooltip"></td>
-                        <td>1</td>
-                    </tr>
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
 
-        <div id="asduAddressView" class="table-section" style="display: none;">
+        <div class="table-section">
             <h2>ASDU-Adress Fokus</h2>
+            <div class="mb-3">
+                <button class="export-btn btn btn-primary" onclick="exportTableToExcel('asduAddressTable', 'iec104-data')">Exportieren nach Excel</button>
+            </div>
             <table id="asduAddressTable" class="table">
                 <thead>
                     <tr>
@@ -97,9 +99,12 @@
             </table>
         </div>
 
-        <div id="notImplementedAsduTypes" class="table-section">
-            <h2>Nicht implementierte ASDU-Typen</h2>
-            <ul id="notImplementedList"></ul>
+        <div class="reference-section">
+            <h3>ASDU-Typen Referenz</h3>
+            <div class="reference-list" id="asduTypesList"></div>
+
+            <h3 class="mt-4">Übertragungsursachen Referenz</h3>
+            <div class="reference-list" id="cotTypesList"></div>
         </div>
     </div>
 
@@ -182,62 +187,40 @@
     };
 
     const cotTypes = {
-    1: 'Periodisch, zyklisch',
-    2: 'Hintergrund-Scan',
-    3: 'Spontan',
-    4: 'Initialisierung',
-    5: 'Abfrage oder angefordert',
-    6: 'Aktivierung',
-    7: 'Aktivierungsbestätigung',
-    8: 'Deaktivierung',
-    9: 'Deaktivierungsbestätigung',
-    10: 'Aktivierungsbeendigung',
-    11: 'Rückmeldung, verursacht durch Fernbefehl',
-    12: 'Rückmeldung, verursacht durch lokalen Befehl',
-    13: 'Datentransfer',
-    20: 'Angefordert durch Stationsabfrage',
-    21: 'Angefordert durch Abfrage der Gruppe 1',
-    22: 'Angefordert durch Abfrage der Gruppe 2',
-    23: 'Angefordert durch Abfrage der Gruppe 3',
-    24: 'Angefordert durch Abfrage der Gruppe 4',
-    25: 'Angefordert durch Abfrage der Gruppe 5',
-    26: 'Angefordert durch Abfrage der Gruppe 6',
-    27: 'Angefordert durch Abfrage der Gruppe 7',
-    28: 'Angefordert durch Abfrage der Gruppe 8',
-    29: 'Angefordert durch Abfrage der Gruppe 9',
-    30: 'Angefordert durch Abfrage der Gruppe 10',
-    31: 'Angefordert durch Abfrage der Gruppe 11',
-    32: 'Angefordert durch Abfrage der Gruppe 12',
-    33: 'Angefordert durch Abfrage der Gruppe 13',
-    34: 'Angefordert durch Abfrage der Gruppe 14',
-    35: 'Angefordert durch Abfrage der Gruppe 15',
-    36: 'Angefordert durch Abfrage der Gruppe 16',
-    37: 'Angefordert durch Zählerabfrage der Gruppe 1',
-    38: 'Angefordert durch Zählerabfrage der Gruppe 2',
-    39: 'Angefordert durch Zählerabfrage der Gruppe 3',
-    40: 'Angefordert durch Zählerabfrage der Gruppe 4',
-    44: 'Unbekannte Typkennung',
-    45: 'Unbekannte Übertragungsursache',
-    46: 'Unbekannte ASDU-Adresse',
-    47: 'Unbekannte Informationsobjektadresse',
-    70: 'Aktivierung',
-    71: 'Aktivierungsbestätigung',
-    72: 'Deaktivierung',
-    73: 'Deaktivierungsbestätigung',
-    74: 'Aktivierungsbeendigung'
-};
-
-    const cotStringToNumber = {
-        'Spontaneous': 3,
-        'Cyclic': 1,
-        'Background': 2,
-        'Initialized': 4,
-        'Request': 5,
-        'Activation': 6,
-        'ActivationConfirmation': 7,
-        'Deactivation': 8,
-        'DeactivationConfirmation': 9,
-        'ActivationTermination': 10
+        1: 'Periodisch, zyklisch',
+        2: 'Hintergrund-Scan',
+        3: 'Spontan',
+        4: 'Initialisierung',
+        5: 'Abfrage oder angefordert',
+        6: 'Aktivierung',
+        7: 'Aktivierungsbestätigung',
+        8: 'Deaktivierung',
+        9: 'Deaktivierungsbestätigung',
+        10: 'Aktivierungsbeendigung',
+        11: 'Rückmeldung, verursacht durch Fernbefehl',
+        12: 'Rückmeldung, verursacht durch lokalen Befehl',
+        13: 'Datentransfer',
+        20: 'Angefordert durch Stationsabfrage',
+        21: 'Angefordert durch Abfrage der Gruppe 1',
+        22: 'Angefordert durch Abfrage der Gruppe 2',
+        23: 'Angefordert durch Abfrage der Gruppe 3',
+        24: 'Angefordert durch Abfrage der Gruppe 4',
+        25: 'Angefordert durch Abfrage der Gruppe 5',
+        26: 'Angefordert durch Abfrage der Gruppe 6',
+        27: 'Angefordert durch Abfrage der Gruppe 7',
+        28: 'Angefordert durch Abfrage der Gruppe 8',
+        29: 'Angefordert durch Abfrage der Gruppe 9',
+        30: 'Angefordert durch Abfrage der Gruppe 10',
+        31: 'Angefordert durch Abfrage der Gruppe 11',
+        32: 'Angefordert durch Abfrage der Gruppe 12',
+        33: 'Angefordert durch Abfrage der Gruppe 13',
+        34: 'Angefordert durch Abfrage der Gruppe 14',
+        35: 'Angefordert durch Abfrage der Gruppe 15',
+        36: 'Angefordert durch Abfrage der Gruppe 16',
+        37: 'Angefordert durch Zählerabfrage der Gruppe 1',
+        38: 'Angefordert durch Zählerabfrage der Gruppe 2',
+        39: 'Angefordert durch Zählerabfrage der Gruppe 3',
+        40: 'Angefordert durch Zählerabfrage der Gruppe 4'
     };
 
     function getAsduTypeInfo(type) {
@@ -261,34 +244,17 @@
     }
 
     function getCotInfo(cot) {
-        console.log('getCotInfo called with:', cot, 'Type:', typeof cot);
         if (cot === undefined || cot === null) {
-            return 'Übertragungsursache: N/A';
+            return 'N/A';
         }
         
-        let numericCot;
-        if (typeof cot === 'string') {
-            numericCot = cotStringToNumber[cot];
-            if (numericCot === undefined) {
-                console.log('Unknown string COT:', cot);
-                return `Übertragungsursache: ${cot} (Unbekannt)`;
-            }
-        } else {
-            numericCot = parseInt(cot);
-        }
-
+        let numericCot = parseInt(cot);
         if (isNaN(numericCot)) {
-            console.log('Invalid COT value:', cot);
-            return `Übertragungsursache: ${cot} (Ungültig)`;
+            return `${cot} (Ungültig)`;
         }
 
         const description = cotTypes[numericCot];
-        if (description) {
-            return `Übertragungsursache: ${numericCot} (${description})`;
-        } else {
-            console.log('Unknown numeric COT:', numericCot);
-            return `Übertragungsursache: ${numericCot} (Unbekannt)`;
-        }
+        return description ? `${numericCot} (${description})` : `${numericCot} (Unbekannt)`;
     }
 
     async function fetchData(url) {
@@ -304,35 +270,7 @@
         }
     }
 
-    function displayUniqueCombinations(iec104Data) {
-        console.log('Displaying unique combinations');
-        const table = document.getElementById('iec104Table');
-        const tbody = table.getElementsByTagName('tbody')[0];
-        tbody.innerHTML = '';
-
-        const uniqueCombinations = new Set();
-
-        iec104Data.forEach((item) => {
-            const combination = `${item.ipSrc}-${item.ipDst}-${item.apduType}-${item.asduType}-${item.cot}-${item.asduAddr}`;
-            
-            if (!uniqueCombinations.has(combination)) {
-                uniqueCombinations.add(combination);
-
-                const row = tbody.insertRow();
-                row.insertCell(0).textContent = item.ipSrc || 'N/A';
-                row.insertCell(1).textContent = item.ipDst || 'N/A';
-                row.insertCell(2).textContent = item.apduType || 'N/A';
-                row.insertCell(3).innerHTML = getAsduTypeInfo(item.asduType);
-                row.insertCell(4).textContent = getCotInfo(item.cot);
-                row.insertCell(5).textContent = item.asduAddr !== undefined ? item.asduAddr : 'N/A';
-            }
-        });
-
-        console.log(`Displayed ${uniqueCombinations.size} unique combinations`);
-    }
-
     function displayAsduAddressFocus(iec104Data) {
-        console.log('Displaying ASDU address focus');
         const table = document.getElementById('asduAddressTable');
         const tbody = table.getElementsByTagName('tbody')[0];
         tbody.innerHTML = '';
@@ -360,7 +298,6 @@
             cell.colSpan = 2;
             cell.innerHTML = '<div class="no-data">Keine gültigen ASDU-Adressen gefunden.</div>';
         } else {
-            // Sortiere die ASDU-Adressen aufsteigend
             const sortedAsduAddresses = Array.from(asduAddressMap.keys()).sort((a, b) => a - b);
 
             sortedAsduAddresses.forEach((asduAddr) => {
@@ -377,96 +314,93 @@
                         <strong>Ziel-IP:</strong> ${propObj.ipDst || 'N/A'}, 
                         <strong>APDU-Typ:</strong> ${propObj.apduType || 'N/A'}, 
                         <strong>ASDU-Typ:</strong> ${getAsduTypeInfo(propObj.asduType)}, 
-                        <strong>${getCotInfo(propObj.cot)}</strong>
+                        <strong>Übertragungsursache:</strong> ${getCotInfo(propObj.cot)}
                     `;
                     propertiesCell.appendChild(propDiv);
                 });
             });
         }
-
-        console.log(`Displayed ${asduAddressMap.size} ASDU addresses`);
     }
 
-    function findNotImplementedAsduTypes(iec104Data) {
-        const implementedTypes = new Set(iec104Data.map(item => parseInt(item.asduType)));
-        const allTypes = new Set(Object.keys(asduTypes).map(Number));
-        const notImplemented = new Set([...allTypes].filter(x => !implementedTypes.has(x)));
+    function displayAsduTypeAddresses(iec104Data) {
+        const table = document.getElementById('asduTypeAddressTable');
+        const tbody = table.getElementsByTagName('tbody')[0];
+        tbody.innerHTML = '';
 
-        const notImplementedList = document.getElementById('notImplementedList');
-        notImplementedList.innerHTML = '';
+        const asduTypeMap = new Map();
 
-        if (notImplemented.size === 0) {
-            notImplementedList.innerHTML = '<li>Alle ASDU-Typen sind implementiert.</li>';
+        iec104Data.forEach((item) => {
+            if (item.asduType !== undefined) {
+                if (!asduTypeMap.has(item.asduType)) {
+                    asduTypeMap.set(item.asduType, new Set());
+                }
+                if (item.asduAddr !== undefined) {
+                    asduTypeMap.get(item.asduType).add(item.asduAddr);
+                }
+            }
+        });
+
+        const sortedAsduTypes = Array.from(asduTypeMap.keys()).sort((a, b) => parseInt(a) - parseInt(b));
+
+        if (sortedAsduTypes.length === 0) {
+            const row = tbody.insertRow();
+            const cell = row.insertCell(0);
+            cell.colSpan = 2;
+            cell.innerHTML = '<div class="no-data">Keine ASDU-Typen gefunden.</div>';
         } else {
-            notImplemented.forEach(type => {
-                const li = document.createElement('li');
-                li.innerHTML = getAsduTypeInfo(type);
-                notImplementedList.appendChild(li);
+            sortedAsduTypes.forEach((asduType) => {
+                const addresses = Array.from(asduTypeMap.get(asduType)).sort((a, b) => a - b);
+                const row = tbody.insertRow();
+                row.insertCell(0).innerHTML = getAsduTypeInfo(asduType);
+                row.insertCell(1).textContent = addresses.join(', ');
             });
         }
-
-        console.log(`Found ${notImplemented.size} not implemented ASDU types`);
     }
 
-    function toggleView() {
-        console.log('Toggling view');
-        const uniqueView = document.getElementById('uniqueCombinationsView');
-        const asduView = document.getElementById('asduAddressView');
-        if (uniqueView.style.display === 'none') {
-            uniqueView.style.display = 'block';
-            asduView.style.display = 'none';
-            console.log('Switched to unique combinations view');
-        } else {
-            uniqueView.style.display = 'none';
-            asduView.style.display = 'block';
-            console.log('Switched to ASDU address focus view');
-        }
+    function displayReferenceLists() {
+        const asduTypesList = document.getElementById('asduTypesList');
+        Object.entries(asduTypes).sort((a, b) => parseInt(a[0]) - parseInt(b[0])).forEach(([id, type]) => {
+            const div = document.createElement('div');
+            div.innerHTML = getAsduTypeInfo(parseInt(id));
+            asduTypesList.appendChild(div);
+        });
+
+        const cotTypesList = document.getElementById('cotTypesList');
+        Object.entries(cotTypes).sort((a, b) => parseInt(a[0]) - parseInt(b[0])).forEach(([id, description]) => {
+            const div = document.createElement('div');
+            div.innerHTML = `<strong>${id}:</strong> ${description}`;
+            cotTypesList.appendChild(div);
+        });
     }
 
     function exportTableToExcel(tableId, filename = '') {
-        console.log('Exporting table to Excel');
         let dataType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
         let tableSelect = document.getElementById(tableId);
         let excelData = XLSX.utils.table_to_book(tableSelect, {sheet: "Sheet1"});
         XLSX.write(excelData, {bookType: 'xlsx', type: 'array'});
         XLSX.writeFile(excelData, filename + '.xlsx');
-        console.log('Table exported to Excel');
-    }
-
-    function initializeTestTooltip() {
-        const testTooltipElement = document.getElementById('testTooltip');
-        if (testTooltipElement) {
-            testTooltipElement.innerHTML = getAsduTypeInfo(1);
-        }
-        const testCotTooltipElement = document.getElementById('testCotTooltip');
-        if (testCotTooltipElement) {
-            testCotTooltipElement.textContent = getCotInfo(3);
-        }
     }
 
     async function loadIEC104Data() {
-        console.log('Loading IEC104 data');
         try {
             const iec104Data = await fetchData('/get-iec104-data');
-            console.log(`Received ${iec104Data.length} IEC104 data items`);
             
             if (iec104Data.length > 0) {
-                displayUniqueCombinations(iec104Data);
+                displayAsduTypeAddresses(iec104Data);
                 displayAsduAddressFocus(iec104Data);
-                findNotImplementedAsduTypes(iec104Data);
-                console.log('IEC104 data loaded and displayed');
+                displayReferenceLists();
             } else {
-                console.log('No IEC104 data received');
-                document.getElementById('iec104Table').innerHTML = '<tr><td colspan="6">Keine Daten verfügbar</td></tr>';
+                document.getElementById('asduTypeAddressTable').innerHTML = '<tr><td colspan="2" class="no-data">Keine Daten verfügbar</td></tr>';
+                document.getElementById('asduAddressTable').innerHTML = '<tr><td colspan="2" class="no-data">Keine Daten verfügbar</td></tr>';
             }
         } catch (error) {
             console.error('Error loading IEC104 data:', error);
-            document.getElementById('iec104Table').innerHTML = '<tr><td colspan="6">Fehler beim Laden der Daten</td></tr>';
+            document.getElementById('asduTypeAddressTable').innerHTML = '<tr><td colspan="2" class="no-data">Fehler beim Laden der Daten</td></tr>';
+            document.getElementById('asduAddressTable').innerHTML = '<tr><td colspan="2" class="no-data">Fehler beim Laden der Daten</td></tr>';
         }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        initializeTestTooltip();
         loadIEC104Data();
     });
     </script>
